@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-مولّد مشروع NeoForge 1.21.1 - SkyBlock Core v7.0 (الجزء 1 من 4)
-نظام مستويات عشوائية (1-2000) مع ندرة متزايدة للمستويات العالية.
+مولّد مشروع NeoForge 1.21.1 - SkyBlock Core v8.0 (الجزء 1 من 3)
+البنية الأساسية، السمات، وصيغ الحساب.
 """
 
 from pathlib import Path
@@ -31,7 +31,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.78'
 }
 
-version = '7.0.0'
+version = '8.0.0'
 group = 'com.example.skyblockcore'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -66,9 +66,9 @@ license="MIT"
 
 [[mods]]
 modId="skyblockcore"
-version="7.0.0"
+version="8.0.0"
 displayName="SkyBlock Core"
-description="نظام مستويات عشوائية 1-2000 مع ندرة متزايدة."
+description="نظام مستويات عشوائية 1-2000، صيغ ضرر، وتعديل جميع العناصر والوحوش."
 
 [[dependencies.skyblockcore]]
     modId="neoforge"
@@ -102,7 +102,7 @@ public class SkyBlockCore {
     public SkyBlockCore(IEventBus modBus) {
         SkyBlockRegistries.register(modBus);
         NeoForge.EVENT_BUS.register(SkyBlockEvents.class);
-        LOGGER.info("SkyBlock Core v7.0 initialized (Random Levels 1-2000)!");
+        LOGGER.info("SkyBlock Core v8.0 initialized!");
     }
 }
 """,
@@ -122,26 +122,32 @@ public final class SkyBlockRegistries {
     public static final DeferredRegister<Attribute> ATTRIBUTES =
             DeferredRegister.create(Registries.ATTRIBUTE, SkyBlockCore.MODID);
 
+    // Health: 100 (SkyBlock base)
     public static final DeferredHolder<Attribute, Attribute> HEALTH =
             ATTRIBUTES.register("health", () ->
                     new RangedAttribute("attribute.skyblockcore.health", 100.0, 0.0, 100000.0).setSyncable(true));
 
+    // Defense: 0
     public static final DeferredHolder<Attribute, Attribute> DEFENSE =
             ATTRIBUTES.register("defense", () ->
                     new RangedAttribute("attribute.skyblockcore.defense", 0.0, 0.0, 100000.0).setSyncable(true));
 
+    // Strength: 0
     public static final DeferredHolder<Attribute, Attribute> STRENGTH =
             ATTRIBUTES.register("strength", () ->
                     new RangedAttribute("attribute.skyblockcore.strength", 0.0, 0.0, 100000.0).setSyncable(true));
 
+    // Crit Chance: 30%
     public static final DeferredHolder<Attribute, Attribute> CRIT_CHANCE =
             ATTRIBUTES.register("crit_chance", () ->
                     new RangedAttribute("attribute.skyblockcore.crit_chance", 30.0, 0.0, 100.0).setSyncable(true));
 
+    // Crit Damage: 50%
     public static final DeferredHolder<Attribute, Attribute> CRIT_DAMAGE =
             ATTRIBUTES.register("crit_damage", () ->
                     new RangedAttribute("attribute.skyblockcore.crit_damage", 50.0, 0.0, 100000.0).setSyncable(true));
 
+    // Ferocity: 0
     public static final DeferredHolder<Attribute, Attribute> FEROCITY =
             ATTRIBUTES.register("ferocity", () ->
                     new RangedAttribute("attribute.skyblockcore.ferocity", 0.0, 0.0, 500.0).setSyncable(true));
@@ -160,33 +166,26 @@ public final class SkyBlockMechanics {
     /**
      * توليد مستوى عشوائي بين 1 و 2000.
      * التوزيع: Math.pow(random, 5) يجعل المستويات العالية نادرة جداً.
-     * مثال: المستوى 1000 أو أعلى يظهر بنسبة ~13% فقط.
      */
     public static int getRandomLevel() {
         double random = Math.random();
-        // pow(random, 5) يضمن أن معظم القيم قريبة من 0 (مستويات منخفضة)
         int level = (int) Math.floor(Math.pow(random, 5) * 2000) + 1;
         return Math.min(2000, Math.max(1, level));
     }
 
-    /**
-     * مضاعف الصحة بناءً على المستوى.
-     * المستوى 1: ~1.0x | المستوى 1000: ~201x | المستوى 2000: ~401x
-     */
+    /** مضاعف الصحة بناءً على المستوى. */
     public static double getHealthMultiplier(int level) {
         return 1.0 + (level * 0.2);
     }
 
-    /**
-     * مضاعف الضرر بناءً على المستوى.
-     * المستوى 1: ~1.0x | المستوى 1000: ~101x | المستوى 2000: ~201x
-     */
+    /** مضاعف الضرر بناءً على المستوى. */
     public static double getDamageMultiplier(int level) {
         return 1.0 + (level * 0.1);
     }
 
     /**
      * صيغة الضرر الأساسية من SkyBlock (بدون تعديل).
+     * (5 + WeaponDMG) * (1 + Strength/100) * (1 + CritDamage/100)
      */
     public static double calculatePlayerDamage(double weaponDamage, double strength,
                                                 double critDamage, boolean isCritical) {
@@ -195,9 +194,7 @@ public final class SkyBlockMechanics {
         return Math.floor(base);
     }
 
-    /**
-     * تقليل الضرر بناءً على Defense.
-     */
+    /** تقليل الضرر بناءً على Defense. */
     public static double applyDefenseReduction(double incomingDamage, double defense) {
         if (defense <= 0) return incomingDamage;
         return incomingDamage * (1.0 - (defense / (defense + 100.0)));
@@ -218,12 +215,13 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
@@ -241,19 +239,9 @@ public final class SkyBlockEvents {
 
     @SubscribeEvent
     public static void onIncomingDamage(LivingIncomingDamageEvent event) {
+        // 1) هجوم اللاعب
         if (event.getSource().getEntity() instanceof Player player) {
-            double weaponDamage = 3.0;
-            ItemStack weapon = player.getMainHandItem();
-            // قراءة ضرر الهجوم من مكونات بيانات العنصر (الطريقة الصحيحة في 1.21.1)
-var modifiers = weapon.getAttributeModifiers(EquipmentSlotGroup.MAINHAND);
-if (modifiers.containsKey(Attributes.ATTACK_DAMAGE)) {
-    for (var mod : modifiers.get(Attributes.ATTACK_DAMAGE)) {
-        if (mod.operation() == AttributeModifier.Operation.ADD_VALUE) {
-            weaponDamage = mod.amount();
-            break;
-        }
-    }
-}
+            double weaponDamage = getWeaponDamage(player.getMainHandItem());
 
             var strInst = player.getAttribute(SkyBlockRegistries.STRENGTH);
             var ccInst = player.getAttribute(SkyBlockRegistries.CRIT_CHANCE);
@@ -267,6 +255,7 @@ if (modifiers.containsKey(Attributes.ATTACK_DAMAGE)) {
 
             boolean isCrit = player.getRandom().nextFloat() * 100.0f < critChance;
             double finalDmg = SkyBlockMechanics.calculatePlayerDamage(weaponDamage, strength, critDamage, isCrit);
+
             if (ferocity > 0) {
                 int extraHits = (int) (ferocity / 100.0);
                 if (player.getRandom().nextFloat() * 100.0f < (ferocity % 100.0)) extraHits++;
@@ -276,6 +265,7 @@ if (modifiers.containsKey(Attributes.ATTACK_DAMAGE)) {
             return;
         }
 
+        // 2) دفاع اللاعب
         if (event.getEntity() instanceof Player player) {
             var defInst = player.getAttribute(SkyBlockRegistries.DEFENSE);
             double defense = defInst != null ? defInst.getValue() : 0.0;
@@ -285,32 +275,46 @@ if (modifiers.containsKey(Attributes.ATTACK_DAMAGE)) {
         }
     }
 
+    /** قراءة ضرر السلاح من ItemStack (الطريقة الصحيحة في 1.21.1). */
+    private static double getWeaponDamage(ItemStack stack) {
+        if (stack.isEmpty()) return 3.0;
+
+        ItemAttributeModifiers modifiers = stack.getAttributeModifiers();
+        for (ItemAttributeModifiers.Entry entry : modifiers.modifiers()) {
+            if (entry.attribute().equals(Attributes.ATTACK_DAMAGE)) {
+                if (entry.modifier().operation() == AttributeModifier.Operation.ADD_VALUE) {
+                    return entry.modifier().amount();
+                }
+            }
+        }
+        return 3.0; // قيمة افتراضية إن لم يوجد معدّل
+    }
+
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide()) return;
         if (!(event.getEntity() instanceof LivingEntity mob)) return;
         if (mob instanceof Player) return;
 
-        var hpAttr = mob.getAttribute(Attributes.MAX_HEALTH);
-        if (hpAttr == null) return;
-
-        // مستوى عشوائي (1-2000) - كلما زاد، زادت ندرته
+        // 1. توليد مستوى عشوائي (1-2000) بنظام الندرة
         int level = SkyBlockMechanics.getRandomLevel();
 
-        // مضاعفة الصحة بناءً على المستوى
-        double baseHp = hpAttr.getBaseValue();
-        double newHp = baseHp * SkyBlockMechanics.getHealthMultiplier(level);
-        hpAttr.setBaseValue(newHp);
-        mob.setHealth((float) newHp);
-
-        // مضاعفة الضرر (إن كان للوحش ضرر)
-        var dmgAttr = mob.getAttribute(Attributes.ATTACK_DAMAGE);
-        if (dmgAttr != null) {
-            double baseDmg = dmgAttr.getBaseValue();
-            dmgAttr.setBaseValue(baseDmg * SkyBlockMechanics.getDamageMultiplier(level));
+        // 2. تعديل الصحة القصوى
+        var healthAttr = mob.getAttribute(Attributes.MAX_HEALTH);
+        if (healthAttr != null) {
+            double newHealth = healthAttr.getBaseValue() * SkyBlockMechanics.getHealthMultiplier(level);
+            healthAttr.setBaseValue(newHealth);
+            mob.setHealth((float) newHealth);
         }
 
-        // عرض المستوى فوق رأس الوحش
+        // 3. تعديل الضرر (إن كان للكائن ضرر هجومي)
+        var damageAttr = mob.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (damageAttr != null) {
+            double newDamage = damageAttr.getBaseValue() * SkyBlockMechanics.getDamageMultiplier(level);
+            damageAttr.setBaseValue(newDamage);
+        }
+
+        // 4. عرض المستوى فوق الرأس
         String name = mob.getName().getString();
         mob.setCustomName(Component.literal("§8[§7Lv" + level + "§8] §f" + name));
         mob.setCustomNameVisible(true);
@@ -390,6 +394,62 @@ if (modifiers.containsKey(Attributes.ATTACK_DAMAGE)) {
                         defense, AttributeModifier.Operation.ADD_VALUE), group);
             }
         }
+    }
+}
+""",
+})
+
+FILES.update({
+
+"src/main/java/com/example/skyblockcore/SkyBlockCommands.java": """\
+package com.example.skyblockcore;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
+
+@EventBusSubscriber(modid = SkyBlockCore.MODID, value = Dist.CLIENT)
+public final class SkyBlockCommands {
+
+    @SubscribeEvent
+    public static void register(RegisterClientCommandsEvent event) {
+        event.getDispatcher().register(
+            Commands.literal("sbstats").executes(ctx -> {
+                var player = Minecraft.getInstance().player;
+                if (player == null) return 0;
+
+                var hpInst = player.getAttribute(SkyBlockRegistries.HEALTH);
+                var defInst = player.getAttribute(SkyBlockRegistries.DEFENSE);
+                var strInst = player.getAttribute(SkyBlockRegistries.STRENGTH);
+                var ccInst = player.getAttribute(SkyBlockRegistries.CRIT_CHANCE);
+                var cdInst = player.getAttribute(SkyBlockRegistries.CRIT_DAMAGE);
+                var ferInst = player.getAttribute(SkyBlockRegistries.FEROCITY);
+
+                double hp = hpInst != null ? hpInst.getValue() : 100.0;
+                double def = defInst != null ? defInst.getValue() : 0.0;
+                double str = strInst != null ? strInst.getValue() : 0.0;
+                double cc = ccInst != null ? ccInst.getValue() : 30.0;
+                double cd = cdInst != null ? cdInst.getValue() : 50.0;
+                double fer = ferInst != null ? ferInst.getValue() : 0.0;
+
+                double ehp = hp * (1.0 + (def / 100.0));
+
+                player.sendSystemMessage(Component.literal("§a=== SkyBlock Stats ==="));
+                player.sendSystemMessage(Component.literal(
+                    "§c❤ Health: " + hp + " §7| §a🛡 Defense: " + def +
+                    " §7| §2EHP: " + (int) ehp));
+                player.sendSystemMessage(Component.literal(
+                    "§c❁ Strength: " + str + " §7| §6☠ Crit Chance: " + cc +
+                    "% §7| §6Crit Damage: " + cd + "%"));
+                player.sendSystemMessage(Component.literal(
+                    "§e⚡ Ferocity: " + fer + "%"));
+                return 1;
+            })
+        );
     }
 }
 """,
