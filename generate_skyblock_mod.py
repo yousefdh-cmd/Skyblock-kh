@@ -244,8 +244,16 @@ public final class SkyBlockEvents {
         if (event.getSource().getEntity() instanceof Player player) {
             double weaponDamage = 3.0;
             ItemStack weapon = player.getMainHandItem();
-            if (weapon.getItem() instanceof SwordItem sword) weaponDamage = sword.getDamage();
-            else if (weapon.getItem() instanceof AxeItem axe) weaponDamage = axe.getDamage();
+            // قراءة ضرر الهجوم من مكونات بيانات العنصر (الطريقة الصحيحة في 1.21.1)
+var modifiers = weapon.getAttributeModifiers(EquipmentSlotGroup.MAINHAND);
+if (modifiers.containsKey(Attributes.ATTACK_DAMAGE)) {
+    for (var mod : modifiers.get(Attributes.ATTACK_DAMAGE)) {
+        if (mod.operation() == AttributeModifier.Operation.ADD_VALUE) {
+            weaponDamage = mod.amount();
+            break;
+        }
+    }
+}
 
             var strInst = player.getAttribute(SkyBlockRegistries.STRENGTH);
             var ccInst = player.getAttribute(SkyBlockRegistries.CRIT_CHANCE);
