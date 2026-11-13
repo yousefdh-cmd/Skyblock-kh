@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """
-مولّد مشروع NeoForge 1.21.1 - SkyBlock Core v3.0
-يُنشئ مشروعاً كاملاً يطبق خصائص Combat Stats، صيغ الضرر،
-مستوى الوحوش، وتعديل عناصر الفانيلا (سيف الماس، درع الماس).
-يشغّل: python generate_skyblock_mod.py
+مولّد مشروع NeoForge 1.21.1 - SkyBlock Core v4.0
+نسخة مُصلحة بالكامل - تم حل مشاكل الاستيراد.
 """
 
 from pathlib import Path
@@ -33,7 +31,7 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.78'
 }
 
-version = '3.0.0'
+version = '4.0.0'
 group = 'com.example.skyblockcore'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -69,7 +67,7 @@ license="MIT"
 
 [[mods]]
 modId="skyblockcore"
-version="3.0.0"
+version="4.0.0"
 displayName="SkyBlock Core"
 description="Combat Stats كاملة + صيغ الضرر ومستوى الوحوش + تعديل عناصر الفانيلا."
 
@@ -88,10 +86,6 @@ description="Combat Stats كاملة + صيغ الضرر ومستوى الوحو
     side="BOTH"
 """,
 
-# ============================================================
-# Java
-# ============================================================
-
 "src/main/java/com/example/skyblockcore/SkyBlockCore.java": """\
 package com.example.skyblockcore;
 
@@ -109,8 +103,7 @@ public class SkyBlockCore {
     public SkyBlockCore(IEventBus modBus) {
         SkyBlockRegistries.register(modBus);
         NeoForge.EVENT_BUS.register(SkyBlockEvents.class);
-        NeoForge.EVENT_BUS.register(SkyBlockCommands.class);
-        LOGGER.info("SkyBlock Core v3.0 initialized!");
+        LOGGER.info("SkyBlock Core v4.0 initialized!");
     }
 }
 """,
@@ -119,7 +112,6 @@ public class SkyBlockCore {
 package com.example.skyblockcore;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
 import net.neoforged.bus.api.IEventBus;
@@ -131,61 +123,51 @@ public final class SkyBlockRegistries {
     public static final DeferredRegister<Attribute> ATTRIBUTES =
             DeferredRegister.create(Registries.ATTRIBUTE, SkyBlockCore.MODID);
 
-    // Health: 100 (SkyBlock base)
     public static final DeferredHolder<Attribute, Attribute> HEALTH =
             ATTRIBUTES.register("health", () ->
                     new RangedAttribute("attribute.skyblockcore.health", 100.0, 0.0, 100000.0)
                             .setSyncable(true));
 
-    // Defense: 0
     public static final DeferredHolder<Attribute, Attribute> DEFENSE =
             ATTRIBUTES.register("defense", () ->
                     new RangedAttribute("attribute.skyblockcore.defense", 0.0, 0.0, 100000.0)
                             .setSyncable(true));
 
-    // True Defense: 0
     public static final DeferredHolder<Attribute, Attribute> TRUE_DEFENSE =
             ATTRIBUTES.register("true_defense", () ->
                     new RangedAttribute("attribute.skyblockcore.true_defense", 0.0, 0.0, 100000.0)
                             .setSyncable(true));
 
-    // Strength: 0
     public static final DeferredHolder<Attribute, Attribute> STRENGTH =
             ATTRIBUTES.register("strength", () ->
                     new RangedAttribute("attribute.skyblockcore.strength", 0.0, 0.0, 100000.0)
                             .setSyncable(true));
 
-    // Crit Chance: 30%
     public static final DeferredHolder<Attribute, Attribute> CRIT_CHANCE =
             ATTRIBUTES.register("crit_chance", () ->
                     new RangedAttribute("attribute.skyblockcore.crit_chance", 30.0, 0.0, 100.0)
                             .setSyncable(true));
 
-    // Crit Damage: 50%
     public static final DeferredHolder<Attribute, Attribute> CRIT_DAMAGE =
             ATTRIBUTES.register("crit_damage", () ->
                     new RangedAttribute("attribute.skyblockcore.crit_damage", 50.0, 0.0, 100000.0)
                             .setSyncable(true));
 
-    // Ferocity: 0
     public static final DeferredHolder<Attribute, Attribute> FEROCITY =
             ATTRIBUTES.register("ferocity", () ->
                     new RangedAttribute("attribute.skyblockcore.ferocity", 0.0, 0.0, 500.0)
                             .setSyncable(true));
 
-    // Attack Speed: 0
     public static final DeferredHolder<Attribute, Attribute> ATTACK_SPEED =
             ATTRIBUTES.register("attack_speed", () ->
                     new RangedAttribute("attribute.skyblockcore.attack_speed", 0.0, 0.0, 100.0)
                             .setSyncable(true));
 
-    // Intelligence: 0
     public static final DeferredHolder<Attribute, Attribute> INTELLIGENCE =
             ATTRIBUTES.register("intelligence", () ->
                     new RangedAttribute("attribute.skyblockcore.intelligence", 0.0, 0.0, 100000.0)
                             .setSyncable(true));
 
-    // Health Regen: 100
     public static final DeferredHolder<Attribute, Attribute> HEALTH_REGEN =
             ATTRIBUTES.register("health_regen", () ->
                     new RangedAttribute("attribute.skyblockcore.health_regen", 100.0, 0.0, 100000.0)
@@ -200,13 +182,6 @@ public final class SkyBlockRegistries {
 "src/main/java/com/example/skyblockcore/SkyBlockMechanics.java": """\
 package com.example.skyblockcore;
 
-/**
- * صيغ Hypixel SkyBlock الرسمية.
- * - Damage = floor( (5 + WeaponDMG) * (1 + Strength/100) * (1 + CritDamage/100) )
- * - Defense Reduction = Defense / (Defense + 100)
- * - Effective Health = Health * (1 + Defense/100)
- * - Mob Level = floor( (log10(HP * DMG) - 2) ^ 2.6 )
- */
 public final class SkyBlockMechanics {
 
     public static int calculateMobLevel(double health, double damage) {
@@ -242,10 +217,14 @@ public final class SkyBlockMechanics {
 package com.example.skyblockcore;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.monster.Skeleton;
+import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.monster.ZombieVillager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -276,10 +255,15 @@ public final class SkyBlockEvents {
                 weaponDamage = 35.0;
             }
 
-            double strength = getAttr(player, SkyBlockRegistries.STRENGTH);
-            double critChance = getAttr(player, SkyBlockRegistries.CRIT_CHANCE);
-            double critDamage = getAttr(player, SkyBlockRegistries.CRIT_DAMAGE);
-            double ferocity = getAttr(player, SkyBlockRegistries.FEROCITY);
+            var strInst = player.getAttribute(SkyBlockRegistries.STRENGTH);
+            var ccInst = player.getAttribute(SkyBlockRegistries.CRIT_CHANCE);
+            var cdInst = player.getAttribute(SkyBlockRegistries.CRIT_DAMAGE);
+            var ferInst = player.getAttribute(SkyBlockRegistries.FEROCITY);
+
+            double strength = strInst != null ? strInst.getValue() : 0.0;
+            double critChance = ccInst != null ? ccInst.getValue() : 30.0;
+            double critDamage = cdInst != null ? cdInst.getValue() : 50.0;
+            double ferocity = ferInst != null ? ferInst.getValue() : 0.0;
 
             boolean isCrit = player.getRandom().nextFloat() * 100.0f < critChance;
             double finalDmg = SkyBlockMechanics.calculatePlayerDamage(
@@ -304,11 +288,8 @@ public final class SkyBlockEvents {
         }
 
         if (event.getEntity() instanceof Player player) {
-            double defense = getAttr(player, SkyBlockRegistries.DEFENSE);
-            double trueDefense = getAttr(player, SkyBlockRegistries.TRUE_DEFENSE);
-            if (event.getSource().is(net.minecraft.world.damagesource.DamageTypes.GENERIC_KILL)) {
-                return;
-            }
+            var defInst = player.getAttribute(SkyBlockRegistries.DEFENSE);
+            double defense = defInst != null ? defInst.getValue() : 0.0;
             if (defense > 0) {
                 float reduced = (float) SkyBlockMechanics.applyDefenseReduction(
                         event.getAmount(), defense);
@@ -324,10 +305,10 @@ public final class SkyBlockEvents {
         if (mob instanceof Player) return;
 
         double hp, dmg;
-        if (mob instanceof Zombie) {
-            hp = 100; dmg = 20;
-        } else if (mob instanceof ZombieVillager) {
+        if (mob instanceof ZombieVillager) {
             hp = 120; dmg = 24;
+        } else if (mob instanceof Zombie) {
+            hp = 100; dmg = 20;
         } else if (mob instanceof Skeleton) {
             hp = 100; dmg = 15;
         } else {
@@ -351,57 +332,51 @@ public final class SkyBlockEvents {
     @SubscribeEvent
     public static void onItemAttributes(ItemAttributeModifierEvent event) {
         ItemStack stack = event.getItemStack();
+
         if (stack.is(Items.DIAMOND_SWORD)) {
             event.addModifier(Attributes.ATTACK_DAMAGE,
-                    new net.minecraft.world.entity.ai.attributes.AttributeModifier(
-                            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
-                                    SkyBlockCore.MODID, "diamond_sword_damage"),
-                            35.0,
-                            net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE),
-                    net.minecraft.world.entity.EquipmentSlotGroup.MAINHAND);
+                    new AttributeModifier(
+                            ResourceLocation.fromNamespaceAndPath(SkyBlockCore.MODID, "diamond_sword_damage"),
+                            32.0,
+                            AttributeModifier.Operation.ADD_VALUE),
+                    EquipmentSlotGroup.MAINHAND);
         }
+
         if (stack.is(Items.DIAMOND_HELMET)) {
             event.addModifier(Attributes.ARMOR,
-                    new net.minecraft.world.entity.ai.attributes.AttributeModifier(
-                            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
-                                    SkyBlockCore.MODID, "diamond_helmet_def"),
-                            15.0,
-                            net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE),
-                    net.minecraft.world.entity.EquipmentSlotGroup.HEAD);
+                    new AttributeModifier(
+                            ResourceLocation.fromNamespaceAndPath(SkyBlockCore.MODID, "diamond_helmet_def"),
+                            12.0,
+                            AttributeModifier.Operation.ADD_VALUE),
+                    EquipmentSlotGroup.HEAD);
         }
+
         if (stack.is(Items.DIAMOND_CHESTPLATE)) {
             event.addModifier(Attributes.ARMOR,
-                    new net.minecraft.world.entity.ai.attributes.AttributeModifier(
-                            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
-                                    SkyBlockCore.MODID, "diamond_chest_def"),
-                            40.0,
-                            net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE),
-                    net.minecraft.world.entity.EquipmentSlotGroup.CHEST);
+                    new AttributeModifier(
+                            ResourceLocation.fromNamespaceAndPath(SkyBlockCore.MODID, "diamond_chest_def"),
+                            32.0,
+                            AttributeModifier.Operation.ADD_VALUE),
+                    EquipmentSlotGroup.CHEST);
         }
+
         if (stack.is(Items.DIAMOND_LEGGINGS)) {
             event.addModifier(Attributes.ARMOR,
-                    new net.minecraft.world.entity.ai.attributes.AttributeModifier(
-                            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
-                                    SkyBlockCore.MODID, "diamond_legs_def"),
-                            30.0,
-                            net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE),
-                    net.minecraft.world.entity.EquipmentSlotGroup.LEGS);
+                    new AttributeModifier(
+                            ResourceLocation.fromNamespaceAndPath(SkyBlockCore.MODID, "diamond_legs_def"),
+                            24.0,
+                            AttributeModifier.Operation.ADD_VALUE),
+                    EquipmentSlotGroup.LEGS);
         }
+
         if (stack.is(Items.DIAMOND_BOOTS)) {
             event.addModifier(Attributes.ARMOR,
-                    new net.minecraft.world.entity.ai.attributes.AttributeModifier(
-                            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
-                                    SkyBlockCore.MODID, "diamond_boots_def"),
-                            15.0,
-                            net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE),
-                    net.minecraft.world.entity.EquipmentSlotGroup.FEET);
+                    new AttributeModifier(
+                            ResourceLocation.fromNamespaceAndPath(SkyBlockCore.MODID, "diamond_boots_def"),
+                            12.0,
+                            AttributeModifier.Operation.ADD_VALUE),
+                    EquipmentSlotGroup.FEET);
         }
-    }
-
-    private static double getAttr(Player player,
-                                  net.neoforged.neoforge.registries.DeferredHolder<Attribute, Attribute> holder) {
-        var instance = player.getAttribute(holder);
-        return instance != null ? instance.getValue() : 0.0;
     }
 }
 """,
@@ -412,9 +387,12 @@ package com.example.skyblockcore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
+@EventBusSubscriber(modid = SkyBlockCore.MODID, value = Dist.CLIENT)
 public final class SkyBlockCommands {
 
     @SubscribeEvent
@@ -424,19 +402,25 @@ public final class SkyBlockCommands {
                 var player = Minecraft.getInstance().player;
                 if (player == null) return 0;
 
-                double hp = get(player, SkyBlockRegistries.HEALTH);
-                double def = get(player, SkyBlockRegistries.DEFENSE);
-                double str = get(player, SkyBlockRegistries.STRENGTH);
-                double cc = get(player, SkyBlockRegistries.CRIT_CHANCE);
-                double cd = get(player, SkyBlockRegistries.CRIT_DAMAGE);
-                double fer = get(player, SkyBlockRegistries.FEROCITY);
+                var hpInst = player.getAttribute(SkyBlockRegistries.HEALTH);
+                var defInst = player.getAttribute(SkyBlockRegistries.DEFENSE);
+                var strInst = player.getAttribute(SkyBlockRegistries.STRENGTH);
+                var ccInst = player.getAttribute(SkyBlockRegistries.CRIT_CHANCE);
+                var cdInst = player.getAttribute(SkyBlockRegistries.CRIT_DAMAGE);
+                var ferInst = player.getAttribute(SkyBlockRegistries.FEROCITY);
+
+                double hp = hpInst != null ? hpInst.getValue() : 100.0;
+                double def = defInst != null ? defInst.getValue() : 0.0;
+                double str = strInst != null ? strInst.getValue() : 0.0;
+                double cc = ccInst != null ? ccInst.getValue() : 30.0;
+                double cd = cdInst != null ? cdInst.getValue() : 50.0;
+                double fer = ferInst != null ? ferInst.getValue() : 0.0;
                 double ehp = SkyBlockMechanics.effectiveHealth(hp, def);
 
-                player.sendSystemMessage(Component.literal(
-                    "§a=== SkyBlock Stats ==="));
+                player.sendSystemMessage(Component.literal("§a=== SkyBlock Stats ==="));
                 player.sendSystemMessage(Component.literal(
                     "§c❤ Health: " + hp + " §7| §a🛡 Defense: " + def +
-                    " §7| §2Effective HP: " + (int) ehp));
+                    " §7| §2EHP: " + (int) ehp));
                 player.sendSystemMessage(Component.literal(
                     "§c❁ Strength: " + str + " §7| §6☠ Crit Chance: " + cc +
                     "% §7| §6Crit Damage: " + cd + "%"));
@@ -446,32 +430,20 @@ public final class SkyBlockCommands {
             })
         );
     }
-
-    private static double get(net.minecraft.world.entity.player.Player player,
-                              net.neoforged.neoforge.registries.DeferredHolder<
-                                      net.minecraft.world.entity.ai.attributes.Attribute,
-                                      net.minecraft.world.entity.ai.attributes.Attribute> holder) {
-        var inst = player.getAttribute(holder);
-        return inst != null ? inst.getValue() : 0.0;
-    }
 }
 """,
 }
 
 def main():
     if ROOT.exists() and any(ROOT.iterdir()):
-        print(f"WARNING: {ROOT} exists and is not empty. Delete or rename it first.")
+        print(f"WARNING: {ROOT} exists and is not empty. Delete it first.")
         return
     for rel_path, content in FILES.items():
         target = ROOT / rel_path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
         print(f"OK {rel_path}")
-    print(f"\\nDone. Project at: {ROOT}")
-    print("Next steps:")
-    print(f"  cd {ROOT.name}")
-    print("  gradle wrapper --gradle-version 8.9")
-    print("  ./gradlew runClient")
+    print(f"\nDone. Project at: {ROOT}")
 
 if __name__ == "__main__":
     main()
